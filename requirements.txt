@@ -1,1 +1,2 @@
-python-telegram-bot==20.7 fastapi
+python-telegram-bot==20.7 
+fastapi 
