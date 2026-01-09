@@ -289,12 +289,44 @@ def keep_awake():
         except Exception as e:
             logger.error(f"❌ Self-ping error: {e}")
 
+# --- ADMIN PANEL ---
+PROMO_ENABLED = True
+ADMIN_IDS = [7901048491, 123456789] # Sizning ID va boshqa adminlar
+
+def get_admin_markup():
+    markup = types.InlineKeyboardMarkup()
+    status = "✅ YONIQ" if PROMO_ENABLED else "❌ O'CHIK"
+    markup.add(types.InlineKeyboardButton(f"Reklama holati: {status}", callback_data="toggle_promo"))
+    return markup
+
+@bot.message_handler(commands=['admin'])
+def admin_panel(message):
+    if message.from_user.id in ADMIN_IDS:
+        bot.send_message(message.chat.id, "💎 <b>ADMIN PANEL</b>\n\nPastdagi tugma orqali reklamani boshqaring:", parse_mode='HTML', reply_markup=get_admin_markup())
+    else:
+        bot.send_message(message.chat.id, "❌ Siz admin emassiz.")
+
+@bot.callback_query_handler(func=lambda call: call.data == "toggle_promo")
+def toggle_promo_callback(call):
+    global PROMO_ENABLED
+    if call.from_user.id not in ADMIN_IDS:
+        bot.answer_callback_query(call.id, "Ruxsat yo'q!", show_alert=True)
+        return
+    
+    PROMO_ENABLED = not PROMO_ENABLED
+    status = "Yoqildi ✅" if PROMO_ENABLED else "O'chirildi ❌"
+    bot.answer_callback_query(call.id, f"Reklama {status}")
+    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=get_admin_markup())
+
 # --- NEW: PERIODIC PROMO POST ---
 def periodic_promo():
     """Har 3 daqiqada kanalga chiroyli reklama postini chiqaradi"""
     while True:
         try:
             time.sleep(180) # 3 daqiqa
+            if not PROMO_ENABLED:
+                continue
+                
             promo_text = (
                 f"⚡️ <b>TEZKOR TAKSI BUYURTMASI!</b> ⚡️\n\n"
                 f"🏁 <b>3 daqiqada</b> manzilga yetib boramiz!\n"
@@ -319,6 +351,14 @@ if __name__ == "__main__":
     
     # Promo threadni boshlash
     Thread(target=periodic_promo, daemon=True).start()
+    
+    # --- WEBHOOK'NI OCHIRISH (409 Conflict xatosini oldini olish uchun) ---
+    try:
+        logger.info("🧹 Webhook tozalanmoqda...")
+        bot.remove_webhook()
+        time.sleep(1)
+    except Exception as e:
+        logger.warning(f"⚠️ Webhook tozalashda xato: {e}")
         
     logger.info("🤖 Bot ishga tushdi...")
-    bot.infinity_polling()
+    bot.infinity_polling(skip_pending=True)
