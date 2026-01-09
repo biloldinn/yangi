@@ -1,0 +1,10 @@
+{
+    "api_id": 123456,
+    "api_hash": "YOUR_API_HASH_HERE",
+    "sources": [
+        "@source_channel_username"
+    ],
+    "destinations": [
+        "@dest_channel_username"
+    ]
+}
